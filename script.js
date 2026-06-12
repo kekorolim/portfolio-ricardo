@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================================================
-    // CONTACT FORM — Opens mailto: with pre-filled fields
+    // CONTACT FORM — Submits data via FormSubmit.co API (reliable email sending)
     // ==========================================================================
     const contactForm = document.getElementById('portfolio-contact-form');
     const successMsg = document.getElementById('form-success-msg');
@@ -263,23 +263,36 @@ document.addEventListener('DOMContentLoaded', () => {
             const subject = document.getElementById('form-subject').value.trim();
             const message = document.getElementById('form-message').value.trim();
 
-            // Build mailto: link with all fields pre-filled
-            const mailSubject = encodeURIComponent(`[Portfólio] ${subject}`);
-            const mailBody = encodeURIComponent(
-                `Olá Ricardo,\n\nMeu nome é ${name} (${email}).\n\n${message}\n\nAguardo seu retorno.`
-            );
-            const mailtoLink = `mailto:kekorolim@gmail.com?subject=${mailSubject}&body=${mailBody}`;
+            const submitBtn = contactForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
 
-            // Use a hidden anchor click — the most reliable cross-browser method
-            const tempLink = document.createElement('a');
-            tempLink.href = mailtoLink;
-            tempLink.style.display = 'none';
-            document.body.appendChild(tempLink);
-            tempLink.click();
-            document.body.removeChild(tempLink);
+            // Set loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
 
-            // Show visual success feedback after a short delay
-            setTimeout(() => {
+            // Use FormSubmit.co AJAX endpoint to send the mail
+            fetch("https://formsubmit.co/ajax/kekorolim@gmail.com", {
+                method: "POST",
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    "Nome": name,
+                    "E-mail": email,
+                    "Assunto": subject,
+                    "Mensagem": message
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error("Erro no envio do e-mail");
+                }
+            })
+            .then(data => {
+                // Show success visual feedback
                 contactForm.style.opacity = '0';
                 setTimeout(() => {
                     contactForm.style.display = 'none';
@@ -287,7 +300,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     successMsg.style.opacity = '0';
                     setTimeout(() => { successMsg.style.opacity = '1'; }, 50);
                 }, 300);
-            }, 600);
+            })
+            .catch(error => {
+                console.error("FormSubmit Error: ", error);
+                alert("Erro ao enviar mensagem. Por favor, envie diretamente para o e-mail: kekorolim@gmail.com");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            });
         });
     }
 });
